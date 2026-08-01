@@ -1,0 +1,139 @@
+name: Lab 2 - Sequential Solution (Student Starting Point)
+
+# on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
+
+
+on:
+  workflow_dispatch   # disabled — enable after teaching parallel concepts
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# This is the natural workflow a student builds after Lab 2.
+#
+# They know 'needs:' from Lab 1, so they chain each job to the previous one.
+# Each job waits for the one before it to finish — even though test-lab1 and
+# test-lab2 are completely independent and share no data.
+#
+# EXECUTION ORDER:
+#
+#   [lint]
+#     ↓  (needs: lint)
+#   [test-lab1]
+#     ↓  (needs: test-lab1)
+#   [test-lab2]        ← waiting unnecessarily
+#     ↓  (needs: ...)
+#   [summary]
+#
+# Total time = lint + test-lab1 + test-lab2
+# ─────────────────────────────────────────────────────────────────────────────
+
+jobs:
+
+  # ── STEP 1 ─────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install linting tools
+        run: pip install flake8
+
+      - name: Lint Lab 1
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        working-directory: './GH_Actions/lab1'
+        continue-on-error: true
+
+      - name: Lint Lab 2
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        working-directory: './GH_Actions/lab2'
+        continue-on-error: true
+
+  # ── STEP 2 ─────────────────────────────────────────────────────────────────
+  test-lab1:
+    name: Test Lab 1 — Calculator
+    runs-on: ubuntu-latest
+    needs: lint          # waits for lint to succeed
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        working-directory: './GH_Actions/lab1'
+
+      - name: Run Lab 1 tests
+        run: pytest test_calculator.py -v --cov=calculator --cov-report=term-missing
+        working-directory: './GH_Actions/lab1'
+
+  # ── STEP 3 ─────────────────────────────────────────────────────────────────
+  # needs: test-lab1 means this job cannot start until Lab 1 tests fully finish.
+  # These two test suites are independent — they could run at the same time.
+  # This is the inefficiency we will fix in the parallel version.
+  test-lab2:
+    name: Test Lab 2 — String Utils
+    runs-on: ubuntu-latest
+    needs: test-lab1     # ← waiting unnecessarily
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        working-directory: './GH_Actions/lab2'
+
+      - name: Run Lab 2 tests
+        run: pytest test_string_utils.py -v --cov=string_utils --cov-report=term-missing
+        working-directory: './GH_Actions/lab2'
+
+  # ── STEP 4 ─────────────────────────────────────────────────────────────────
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [lint, test-lab1, test-lab2]
+    if: always()
+
+    steps:
+      - name: Print results
+        run: |
+          echo "========================================================"
+          echo "  Lab 2 — Sequential Run Results"
+          echo "========================================================"
+          echo "  Lint   : ${{ needs.lint.result }}"
+          echo "  Lab 1  : ${{ needs.test-lab1.result }}"
+          echo "  Lab 2  : ${{ needs.test-lab2.result }}"
+          echo "========================================================"
+          echo ""
+          echo "  NOTE: test-lab1 and test-lab2 ran one after another."
+          echo "  They share no data — they could have run in parallel!"
+          echo "  Total time = lint + test-lab1 + test-lab2"
+          echo "========================================================"

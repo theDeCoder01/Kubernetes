@@ -1,0 +1,5 @@
+# This file has been superseded. Use the numbered files instead:
+#   02-node-agent-ds.yaml  — DaemonSet on all nodes (with Downward API + tolerations)
+#   03-node-selector-ds.yaml — DaemonSet targeted to labeled nodes
+#
+# See the lab README for the full updated lab guide.

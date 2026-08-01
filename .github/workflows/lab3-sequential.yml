@@ -1,0 +1,136 @@
+name: Lab 3 - Sequential Jobs (Student Starting Point)
+
+# on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
+
+on:
+  workflow_dispatch   # disabled — run manually only
+
+# ─────────────────────────────────────────────────────────────────────────────
+# This is the natural workflow a student builds after Lab 2.
+#
+# They know about 'needs:' from Lab 2, so they chain each job to the previous
+# one — just like they did with lint → test-lab1 → test-lab2.
+#
+# It works, but the jobs run ONE AFTER ANOTHER even though they are completely
+# independent. The total time is the SUM of all three job runtimes.
+#
+# EXECUTION ORDER:
+#
+#   [test-validator]
+#         ↓  (needs: test-validator)
+#   [test-transformer]
+#         ↓  (needs: test-transformer)
+#   [test-reporter]
+#         ↓  (needs: test-reporter)
+#   [pipeline-summary]
+#
+# Total time = validator time + transformer time + reporter time
+# ─────────────────────────────────────────────────────────────────────────────
+
+jobs:
+
+  # ── JOB 1 ──────────────────────────────────────────────────────────────────
+  test-validator:
+    name: Test Validator Module
+    runs-on: ubuntu-latest
+    # No 'needs:' here — this one starts first
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        working-directory: './GH_Actions/lab3'
+
+      - name: Run validator tests
+        run: pytest test_validator.py -v
+        working-directory: './GH_Actions/lab3'
+
+  # ── JOB 2 ──────────────────────────────────────────────────────────────────
+  # Student pattern from Lab 2: use 'needs:' to run jobs in order.
+  # This job waits for test-validator to fully finish before it starts —
+  # even though the two test suites share no data and could run at the same time.
+  test-transformer:
+    name: Test Transformer Module
+    runs-on: ubuntu-latest
+    needs: test-validator   # ← waiting unnecessarily
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        working-directory: './GH_Actions/lab3'
+
+      - name: Run transformer tests
+        run: pytest test_transformer.py -v
+        working-directory: './GH_Actions/lab3'
+
+  # ── JOB 3 ──────────────────────────────────────────────────────────────────
+  # Same pattern — waits for transformer even though it is also independent.
+  test-reporter:
+    name: Test Reporter Module
+    runs-on: ubuntu-latest
+    needs: test-transformer   # ← also waiting unnecessarily
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        working-directory: './GH_Actions/lab3'
+
+      - name: Run reporter tests
+        run: pytest test_reporter.py -v
+        working-directory: './GH_Actions/lab3'
+
+  # ── JOB 4 ──────────────────────────────────────────────────────────────────
+  pipeline-summary:
+    name: Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [test-validator, test-transformer, test-reporter]
+    if: always()
+
+    steps:
+      - name: Print results
+        run: |
+          echo "========================================================"
+          echo "  Lab 3 — Sequential Run Results"
+          echo "========================================================"
+          echo "  Validator   : ${{ needs.test-validator.result }}"
+          echo "  Transformer : ${{ needs.test-transformer.result }}"
+          echo "  Reporter    : ${{ needs.test-reporter.result }}"
+          echo "========================================================"
+          echo ""
+          echo "  NOTE: These three jobs ran one after another."
+          echo "  They are independent — they could have run in parallel!"
+          echo "  Total time = sum of all three job runtimes."
+          echo "========================================================"
