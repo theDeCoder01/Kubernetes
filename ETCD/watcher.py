@@ -28,8 +28,8 @@ except ImportError as e:
 ETCD_HOST = os.getenv('ETCD_HOST', 'localhost')
 ETCD_PORT = int(os.getenv('ETCD_PORT', '2379'))
 WATCH_KEY = '/config/background_color'
-# Additional key as per 'bonus challanges'
 WATCH_KEY2 = '/config/font_size'
+WATCH_KEYS = ['/config/background_color', '/config/font_size']
 
 def main():
     print("=" * 60, flush=True)
@@ -55,12 +55,12 @@ def main():
     
     # Get initial value if it exists
     try:
-        for key in (WATCH_KEY, WATCH_KEY2):
-            value, metadata = client.get(key)
+        for X in WATCH_KEYS:
+            value, metadata = client.get(X)
             if value:
-                print(f"Current value for {key}: {value.decode('utf-8') if isinstance(value, bytes) else value}")
+                print(f"Current value for {X}: {value.decode('utf-8') if isinstance(value, bytes) else value}")
             else:
-                print(f"Key {key} does not exist yet. Waiting for first write...")
+                print(f"Key {X} does not exist yet. Waiting for first write...")
     except Exception as e:
         print(f"⚠ Could not read initial value: {e}")
         print("   (This is okay - we'll still watch for new values)")
@@ -76,7 +76,7 @@ def main():
         # In Kubernetes: Controllers watch for changes to specific resource types
         # Example: A Deployment Controller watches for Deployment objects
         # Using watch() for a single key
-        for X in (WATCH_KEY, WATCH_KEY2):
+        for X in WATCH_KEYS:
             events_iterator, cancel = client.watch(X)
         
             for event in events_iterator:
@@ -86,6 +86,7 @@ def main():
                     if hasattr(event, 'events'):
                         # It's a WatchResponse object with multiple events
                         events_list = event.events
+                        
                     else:
                         # It's a single event
                         events_list = [event]
@@ -110,6 +111,13 @@ def main():
                             print("   - Event-driven architecture")
                             print("-" * 60)
                             print("\n🔍 Continuing to watch...\n")
+
+                            if X == WATCH_KEY:
+                                X == WATCH_KEY2
+                            else:
+                                X == WATCH_KEY
+                            break
+
                         elif hasattr(evt, 'value') and evt.value is None:
                             # Key was deleted
                             print("\n" + "=" * 60)
@@ -117,6 +125,13 @@ def main():
                             print("=" * 60)
                             print("-" * 60)
                             print("\n🔍 Continuing to watch...\n")
+
+                            if X == WATCH_KEY:
+                                X == WATCH_KEY2
+                            else:
+                                X == WATCH_KEY
+                            break
+
                 except Exception as e:
                     print(f"Error processing event: {e}")
                     print(f"Event type: {type(event)}")

@@ -2,17 +2,16 @@
 """
 ETCD Writer Script
 
-This script allows you to manually change the value of /config/background_color
+This script allows you to manually change the value of /config/font_size
 in etcd. This simulates how Kubernetes API server writes changes to etcd.
 
 Usage:
-    python writer.py <color>
+    python writerZ.py <font_size>
     
 Examples:
-    python writer.py red
-    python writer.py blue
-    python writer.py green
-    python writer.py "#FF5733"
+    python writer.py 8
+    python writer.py 9
+    python writer.py 10
 """
 
 import os
@@ -22,17 +21,16 @@ import etcd3
 # Configuration
 ETCD_HOST = os.getenv('ETCD_HOST', 'localhost')
 ETCD_PORT = int(os.getenv('ETCD_PORT', '2379'))
-WATCH_KEY = '/config/background_color'
+WATCH_KEY2 = '/config/font_size'
 
 def main():
-    # Check if color argument is provided
+    # Check if font_size argument is provided
     if len(sys.argv) < 2:
-        print("Usage: python writer.py <color>")
+        print("Usage: python writerZ.py <font_size>")
         print("\nExamples:")
-        print("  python writer.py red")
-        print("  python writer.py blue")
-        print("  python writer.py green")
-        print("  python writer.py '#FF5733'")
+        print("  python writerZ.py 8")
+        print("  python writerZ.py 9")
+        print("  python writerZ.py 10")
         sys.exit(1)
     
     new_value = sys.argv[1]
@@ -44,7 +42,7 @@ def main():
         client = etcd3.client(host=ETCD_HOST, port=ETCD_PORT)
         
         # Get current value (if exists)
-        value, metadata = client.get(WATCH_KEY)
+        value, metadata = client.get(WATCH_KEY2)
         if value:
             old_value = value.decode('utf-8')
             print(f"Current value: {old_value}")
@@ -55,12 +53,12 @@ def main():
         # In Kubernetes: This is what happens when you run 'kubectl apply'
         # The API server writes the resource to etcd
         print(f"\nWriting new value: {new_value}")
-        client.put(WATCH_KEY, new_value)
+        client.put(WATCH_KEY2, new_value)
         
         # Verify the write
-        value, metadata = client.get(WATCH_KEY)
+        value, metadata = client.get(WATCH_KEY2)
         if value and value.decode('utf-8') == new_value:
-            print(f"✓ Successfully updated {WATCH_KEY} to: {new_value}")
+            print(f"✓ Successfully updated {WATCH_KEY2} to: {new_value}")
             print("\n💡 The Watcher service should have detected this change instantly!")
             print("   Check the watcher container logs to see the reaction.")
         else:

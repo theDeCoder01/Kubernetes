@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY watcher.py .
 COPY writer.py .
+COPY writerZ.py .
 
 # Run the watcher with unbuffered output
 ENV PYTHONUNBUFFERED=1
