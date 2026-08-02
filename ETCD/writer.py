@@ -23,6 +23,8 @@ import etcd3
 ETCD_HOST = os.getenv('ETCD_HOST', 'localhost')
 ETCD_PORT = int(os.getenv('ETCD_PORT', '2379'))
 WATCH_KEY = '/config/background_color'
+# Additional key as per 'bonus challanges'
+WATCH_KEY2 = '/config/font_size'
 
 def main():
     # Check if color argument is provided
@@ -40,32 +42,33 @@ def main():
     print(f"Connecting to etcd at {ETCD_HOST}:{ETCD_PORT}...")
     
     try:
+        for key in (WATCH_KEY, WATCH_KEY2):
         # Connect to etcd
-        client = etcd3.client(host=ETCD_HOST, port=ETCD_PORT)
-        
-        # Get current value (if exists)
-        value, metadata = client.get(WATCH_KEY)
-        if value:
-            old_value = value.decode('utf-8')
-            print(f"Current value: {old_value}")
-        else:
-            print("Key does not exist yet. Creating new key...")
-        
-        # Write the new value
-        # In Kubernetes: This is what happens when you run 'kubectl apply'
-        # The API server writes the resource to etcd
-        print(f"\nWriting new value: {new_value}")
-        client.put(WATCH_KEY, new_value)
-        
-        # Verify the write
-        value, metadata = client.get(WATCH_KEY)
-        if value and value.decode('utf-8') == new_value:
-            print(f"✓ Successfully updated {WATCH_KEY} to: {new_value}")
-            print("\n💡 The Watcher service should have detected this change instantly!")
-            print("   Check the watcher container logs to see the reaction.")
-        else:
-            print("✗ Failed to verify the write")
-            sys.exit(1)
+            client = etcd3.client(host=ETCD_HOST, port=ETCD_PORT)
+            
+            # Get current value (if exists)
+            value, metadata = client.get(WATCH_KEY)
+            if value:
+                old_value = value.decode('utf-8')
+                print(f"Current value: {old_value}")
+            else:
+                print("Key does not exist yet. Creating new key...")
+            
+            # Write the new value
+            # In Kubernetes: This is what happens when you run 'kubectl apply'
+            # The API server writes the resource to etcd
+            print(f"\nWriting new value: {new_value}")
+            client.put(WATCH_KEY, new_value)
+            
+            # Verify the write
+            value, metadata = client.get(WATCH_KEY)
+            if value and value.decode('utf-8') == new_value:
+                print(f"✓ Successfully updated {WATCH_KEY} to: {new_value}")
+                print("\n💡 The Watcher service should have detected this change instantly!")
+                print("   Check the watcher container logs to see the reaction.")
+            else:
+                print("✗ Failed to verify the write")
+                sys.exit(1)
     
     except Exception as e:
         print(f"✗ Error: {e}")
