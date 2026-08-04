@@ -48,13 +48,24 @@ class PokemonCreate(BaseModel):
     Model for creating a new Pokemon.
     This defines what data is required when adding a Pokemon via POST /pokemon
     """
-    name: str = Field(..., description="The Pokemon's name", example="Pikachu")
-    type: str = Field(..., description="The Pokemon's type (e.g., Electric, Fire)", example="Electric")
-    power_level: int = Field(..., ge=1, le=100, description="Power level between 1 and 100", example=85)
+    # Note: We use a simpler Field(...) syntax here because the installed Pydantic
+    # version in this environment does not accept the example= argument in the
+    # same way that the original lesson example suggests.
+    name: str = Field(..., description="The Pokemon's name")
+    type: str = Field(..., description="The Pokemon's type (e.g., Electric, Fire)")
+    power_level: int = Field(..., ge=1, le=100, description="Power level between 1 and 100")
     
     # Field(...) means the field is REQUIRED
     # ge=1 means "greater than or equal to 1"
     # le=100 means "less than or equal to 100"
+
+
+class PokemonUpdate(BaseModel):
+    """
+    Model for updating an existing Pokemon's power level.
+    Only the power_level field is required for PATCH /pokemon/{pokemon_id}.
+    """
+    power_level: int = Field(..., ge=1, le=100, description="Power level between 1 and 100")
 
 
 class PokemonResponse(BaseModel):
@@ -192,6 +203,31 @@ def create_pokemon(pokemon: PokemonCreate):
     
     # Return the created Pokemon (status_code=201 means "Created")
     return new_pokemon
+
+
+@app.patch("/pokemon/{pokemon_id}", response_model=PokemonResponse)
+def update_pokemon_power(pokemon_id: int, pokemon_update: PokemonUpdate):
+    """
+    PATCH /pokemon/{id} - Update a Pokemon's power level
+    
+    This endpoint updates only the power_level field of an existing Pokemon.
+    
+    Args:
+        pokemon_id: The ID of the Pokemon to update
+        pokemon_update: Payload containing the new power level
+    
+    Returns:
+        The updated Pokemon object
+    
+    Raises:
+        HTTPException: 404 if Pokemon not found
+    """
+    if pokemon_id not in pokemon_db:
+        raise HTTPException(status_code=404, detail=f"Pokemon with ID {pokemon_id} not found")
+
+    pokemon = pokemon_db[pokemon_id]
+    pokemon["power_level"] = pokemon_update.power_level
+    return pokemon
 
 
 @app.delete("/pokemon/{pokemon_id}", status_code=204)

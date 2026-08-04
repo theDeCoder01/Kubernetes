@@ -113,9 +113,9 @@ def main():
                             print("\n🔍 Continuing to watch...\n")
 
                             if X == WATCH_KEY:
-                                X == WATCH_KEY2
+                                X = WATCH_KEY2
                             else:
-                                X == WATCH_KEY
+                                X = WATCH_KEY
                             break
 
                         elif hasattr(evt, 'value') and evt.value is None:
@@ -127,9 +127,9 @@ def main():
                             print("\n🔍 Continuing to watch...\n")
 
                             if X == WATCH_KEY:
-                                X == WATCH_KEY2
+                                X = WATCH_KEY2
                             else:
-                                X == WATCH_KEY
+                                X = WATCH_KEY
                             break
 
                 except Exception as e:
